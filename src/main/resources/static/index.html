@@ -25,8 +25,24 @@
             height: 90%;
         }
 
+        #userlist {
+            height: 90%;
+            padding: 20px;
+            border-radius: 30px;
+            background-color: #dffce6;
+        }
+
         .border {
             border: 1px black;
+        }
+
+        .user {
+            border-radius: 30px;
+            padding: 0px 10px;
+        }
+
+        .user.active {
+            background-color: #8bc173;
         }
 
         #footer {
@@ -40,9 +56,10 @@
 <body class="full-height">
     <div class="container-fluid full-height">
         <div class="row chat-text">
-            <div class="col-md-10 border chat-text" id="chatbox">
+            <div class="col-xs-8 border chat-text" id="chatbox">
             </div>
-            <div class="col-md-2 border chat-text">
+            <div class="col-xs-4 border chat-text">
+                <h3>Online users</h3>
                 <ul id="userlist"></ul>
             </div>
         </div>
@@ -69,7 +86,7 @@
             return result;
         }
 
-        const userHashId = generateRandomString(10);
+        const currentUserHashId = generateRandomString(10);
         const socketChannelPrefix = 'app';
         const userChannel = '/users/online';
 
@@ -89,26 +106,26 @@
                 receiveMsgFromSocket(userMessageResponseDto);
             });
 
-            sendUserMsg("join", `${userHashId} has joined.`)
+            sendUserMsg("join", `${currentUserHashId} has joined.`)
         });
 
         window.onbeforeunload = function () {
             // stompClient.send("/app/news", {}, "Leave!!!!");
-            sendUserMsg("leave", `${userHashId} has left.`)
+            sendUserMsg("leave", `${currentUserHashId} has left.`)
             stompClient.disconnect();
         };
 
         $("#send").click(function () {
             const msg = $("#msg").val();
 
-            sendUserMsg("say", `${userHashId}: ${msg}`);
+            sendUserMsg("say", `${currentUserHashId}: ${msg}`);
         });
 
         $("#msg").on('keypress',function(e) {
             if(e.which == 13) {
                 const msg = $("#msg").val();
 
-                sendUserMsg("say", `${userHashId}: ${msg}`);
+                sendUserMsg("say", `${currentUserHashId}: ${msg}`);
             }
         });
 
@@ -116,8 +133,8 @@
             if (type) {
                 const userObj = JSON.stringify({
                     type,
-                    userHashId,
                     msg,
+                    userHashId: currentUserHashId,
                 });
 
                 stompClient.send(`/${socketChannelPrefix}${userChannel}`, {}, String(userObj));
@@ -148,7 +165,15 @@
         }
 
         function addUser(userHashId) {
-            $("#userlist").append("<li id='"+userHashId+"'>"+userHashId+"</li>");
+            let htmlAppend = "";
+
+            if (userHashId === currentUserHashId) {
+                htmlAppend = "<li id='"+userHashId+"' class='user active'>"+userHashId+"</li>";
+            } else {
+                htmlAppend = "<li id='"+userHashId+"' class='user'>"+userHashId+"</li>";
+            }
+            
+            $("#userlist").append(htmlAppend);
         }
     </script>
 </body>
