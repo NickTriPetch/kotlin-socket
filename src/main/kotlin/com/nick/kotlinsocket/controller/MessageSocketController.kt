@@ -21,7 +21,7 @@ class MessageSocketController {
         if (userMessageDto.type == "join") {
             userHashIdList.add(userMessageDto.userHashId)
         } else if (userMessageDto.type == "leave") {
-            userHashIdList = userHashIdList.filter { it.contains(userMessageDto.userHashId) }.toMutableList()
+            userHashIdList = userHashIdList.filter { !it.contains(userMessageDto.userHashId) }.toMutableList()
         }
 
         println("userList > $userHashIdList")
