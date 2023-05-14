@@ -1,30 +1,34 @@
 package com.nick.kotlinsocket.controller
 
+import com.nick.kotlinsocket.dto.UserMessageDto
+import com.nick.kotlinsocket.dto.UserMessageResponseDto
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.messaging.simp.annotation.SendToUser
 import org.springframework.stereotype.Controller
-import java.security.Principal
 
 
 @Controller
 class MessageSocketController {
-    @MessageMapping("/news")
-    @SendTo("/topic/news")
-    fun broadcastNews(@Payload message: String?): String? {
-        println("========== broadcastNews ==========")
-        println("Message: $message")
+    private var userHashIdList: MutableList<String> = mutableListOf()
 
-        return message
-    }
+    @MessageMapping("/users/online")
+    @SendTo("/users/online")
+    fun broadcastUsers(
+        @Payload userMessageDto: UserMessageDto,
+    ): UserMessageResponseDto? {
+        if (userMessageDto.type == "join") {
+            userHashIdList.add(userMessageDto.userHashId)
+        } else if (userMessageDto.type == "leave") {
+            userHashIdList = userHashIdList.filter { it.contains(userMessageDto.userHashId) }.toMutableList()
+        }
 
-    @MessageMapping("/greetings")
-    @SendToUser("/queue/greetings")
-    fun reply(
-        @Payload message: String,
-        user: Principal?
-    ): String? {
-        return "Hello $message"
+        println("userList > $userHashIdList")
+
+        return UserMessageResponseDto(
+            userHashIdList = userHashIdList,
+            msg = userMessageDto.msg,
+        )
     }
 }

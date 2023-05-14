@@ -53,42 +53,51 @@
     </div>
 
     <script>
+        function generateRandomString(length) {
+            var result = '';
+            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var charactersLength = characters.length;
+            for (var i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+
+        const userHashId = generateRandomString(10);
+        const socketChannelPrefix = 'app';
+        const userChannel = '/users/online';
 
         var socketUrl = "http://localhost:8080/mywebsockets";
         // var socketUrl = "ws://localhost:8080/mywebsockets";
         // var socketUrl = "/chat/";
         // var socketUrl = "/chat";
 
-        alert(socketUrl);
-
         //var webSocket = new WebSocket("ws://" + location.hostname + ":" + location.port + "/chat");
         var webSocket = new SockJS(socketUrl);
-
-        console.log('webSocket', webSocket);
-
         var stompClient = Stomp.over(webSocket);
 
         stompClient.connect({}, function (frame) {
-            console.log('Connected: ' + frame);
+            stompClient.subscribe(userChannel, function (message) {
+                const userMessageResponseDto = JSON.parse(message.body);
 
-            stompClient.subscribe('/topic/news', function (greeting) {
-                console.log('Received: ' + greeting);
+                console.log('userMessageResponseDto', userMessageResponseDto);
+
+                receiveMsgFromSocket(userMessageResponseDto);
             });
 
-            stompClient.send("/app/news", {}, "Hello from browser");
+            sendUserMsg("join", `${userHashId} has joined.`)
         });
 
         window.onbeforeunload = function () {
-            stompClient.send("/app/news", {}, "Leave!!!!");
+            // stompClient.send("/app/news", {}, "Leave!!!!");
+            sendUserMsg("leave", `${userHashId} has left.`)
             stompClient.disconnect();
-
-            console.log('------');
-
-            // return "Want to leave?";
         };
 
         $("#send").click(function () {
-            sendMessage($("#msg").val());
+            const msg = $("#msg").val();
+
+            sendUserMsg("say", `${userHashId}: ${msg}`);
         });
 
         // webSocket.onmessage = function (msg) { receievMsg(JSON.parse(msg.data)) }
@@ -104,32 +113,35 @@
         // });
 
 
-        function sendMessage(data) {
-            if (data !== "") {
-                stompClient.send("/app/news", {}, data);
+        function sendUserMsg(type, msg) {
+            if (type) {
+                const userObj = JSON.stringify({
+                    type,
+                    userHashId,
+                    msg,
+                });
 
-                $("#msg").val("");
-                $("#msg").focus();
+                stompClient.send(`/${socketChannelPrefix}${userChannel}`, {}, String(userObj));
             }
         }
 
-        // function receievMsg(msg) {
-        //     if (msg.msgType == "say") {
-        //         $("#chatbox").append("<p>"+msg.data+"</p>");
-        //     }
-        //     else if (msg.msgType == "join") {
-        //         addUser(msg.data);
-        //     }
-        //     else if (msg.msgType == "users") {
-        //         msg.data.forEach(function(el) { addUser(el); });
-        //     }
-        //     else if (msg.msgType == "left") {
-        //         $("#user-"+msg.data.id).remove();
-        //     }
-        // }
-        // function addUser(user) {
-        //     $("#userlist").append("<li id='user-"+user.id+"'>"+user.name+"</li>");
-        // }
+        function receiveMsgFromSocket(userMessageResponseDto) {
+            if (userMessageResponseDto.msg) {
+                $("#chatbox").append("<p>" + userMessageResponseDto.msg + "</p>");
+            }
+
+            if (userMessageResponseDto.userHashIdList) {
+                $("#userlist").empty();
+
+                userMessageResponseDto.userHashIdList.forEach(userHashId => {
+                    addUser(userHashId);
+                });
+            }
+        }
+
+        function addUser(userHashId) {
+            $("#userlist").append("<li id='"+userHashId+"'>"+userHashId+"</li>");
+        }
     </script>
 </body>
 
